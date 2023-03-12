@@ -5,10 +5,11 @@
 using namespace std;
 
 bool gameOver;
+bool isQuitting;
 const int height=20;
 const int width=20;
 
-int x,y,fruitX,fruitY,score;
+int headX,headY,fruitX,fruitY,score;
 
 int tailX[100], tailY[100], nTail;
 
@@ -17,63 +18,93 @@ eDirction dir;
 
 void Setup() {
     gameOver = false;
-    x=width/2; //Initial position, start in the middle
-    y=height/2;
+    isQuitting = false;
+    headX = width/2; //Initial position, start in the middle
+    headY = height/2;
     fruitX = rand() % width;
     fruitY = rand() % height;
     nTail = 0;
+    score = 0;
 }
 
 void Draw() {
 
-    system("CLS");
+    system("CLS"); //Clear screen
 
-    for (int i=0; i<width; i++) {
-        cout<<"#";
-    }cout<<endl;
-
-    for (int i=0; i<height; i++) {
-        for(int j=0; j<width; j++) {
-            if(j==0 || j==width-1) {
-                cout<<"#";
-            }
-            else if (i==y && j==x) {
-                cout<<"Q";
-            } else if (i==fruitY && j==fruitX) {
-                cout<<"F";
-            } else {
-                bool printed = false;
-                for (int k=0; k<nTail; k++) {
-                    if (i == tailY[i] && j==tailX[i]) {
-                        cout<<"o";
-                        printed = true;
-                    }
-                }
-                if (!printed) {cout<<" ";}
-                
-            }
+    if (!gameOver) {
+        //Upper wall
+        for (int i=0; i<width; i++) {
+            cout<<"#";
         }cout<<endl;
+
+        for (int i=0; i<height; i++) {
+            for(int j=0; j<width; j++) {
+
+                //Side walls
+                if(j==0 || j==width-1) {
+                    cout<<"#";
+                }
+
+                //Head
+                else if (i==headY && j==headX) {
+                    cout<<"Q";
+                } 
+                
+                //Fruit
+                else if (i==fruitY && j==fruitX) {
+                    cout<<"F";
+                } 
+                
+                //Tail
+                else {
+                    bool printed = false;
+                    for (int k=0; k<nTail; k++) {
+                        if (i == tailY[k] && j==tailX[k]) {
+                            cout<<"o";
+                            printed = true;
+                        }
+                    }
+                    if (!printed) {cout<<" ";}
+                }
+            }cout<<endl;
+        }
     }
 
+    else {
+        cout<<"GAME OVER"<<endl;
+        cout<<"PRESS R TO RESTART"<<endl;
+    }
+    
+
     for (int i=0; i<width; i++) {
         cout<<"#";
     }cout<<endl;
+
+    cout<<"Score: "<< score <<endl;
+    cout<<"Restart (r)    Quit (x)"<<endl;
 }
 
 void Input() {
     if (_kbhit()) {
         switch(_getch()){
             case 'w':
-                dir = UP;
+                if (dir != DOWN) {dir = UP;}
                 break;
             case 'a':
-                dir = LEFT;
+                if (dir != RIGHT) {dir = LEFT;}
                 break;
             case 's':
-                dir = DOWN;
+                if (dir != UP) {dir = DOWN;}
                 break;
             case 'd':
-                dir = RIGHT;
+                if (dir != LEFT) {dir = RIGHT;}
+                break;
+            case 'x':
+                isQuitting = true;
+                break;
+            case 'r':
+                Setup();
+                dir = STOP;
                 break;
             default:
                 dir = STOP;
@@ -89,8 +120,8 @@ void Logic() {
 
     int prev2X, prev2Y; //buffer variables
 
-    tailX[0] = x; //"head" is the start of "tail"
-    tailY[0] = y;
+    tailX[0] = headX; //"head" is the start of "tail"
+    tailY[0] = headY;
 
     for(int i=1; i<nTail; i++) {
         prev2X = tailX[i]; //buffer current tail location
@@ -103,30 +134,30 @@ void Logic() {
 
     switch(dir) {
         case UP:
-            y--;
+            headY--;
             break;
         case DOWN:
-            y++;
+            headY++;
             break;
         case LEFT:
-            x--;
+            headX--;
             break;
         case RIGHT:
-            x++;
+            headX++;
             break;
     }
 
-    if (x<0 || x>width || y<0 || y>height) {
+    if (headX<0 || headX>width || headY<0 || headY>height) {
         gameOver = true;
     }
 
     for (int i=0; i<nTail; i++) {
-        if (x==tailX[i] && y==tailY[i]) {
+        if (headX == tailX[i] && headY==tailY[i]) {
             gameOver = true;
         }
     }
 
-    if (x==fruitX && y==fruitY) {
+    if (headX==fruitX && headY==fruitY) {
         score += 10;
         fruitX = rand() % width;
         fruitY = rand() % height;
@@ -136,7 +167,7 @@ void Logic() {
 
 int main() {
     Setup();
-    while(!gameOver) {
+    while(!isQuitting) {
         Draw();
         Input();
         Logic();
