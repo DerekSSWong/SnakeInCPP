@@ -1,6 +1,8 @@
 #include <iostream>
 #include <conio.h>
 #include <windows.h>
+#include <memory>
+#include <vector>
 
 using namespace std;
 
@@ -16,7 +18,43 @@ int tailX[100], tailY[100], nTail;
 enum eDirction {STOP=0, UP, DOWN, LEFT, RIGHT};
 eDirction dir;
 
-void Setup() {
+class FoodType {
+    private:
+        string visual;
+        int score;
+    public:
+        FoodType(string v, int s) {visual = v; score = s;}
+        const string& getVisual() {return visual;}
+        const int& getScore() {return score;}
+};
+
+class FoodManager {
+    private:
+        vector<FoodType> foodList;
+        int width, height, currentFoodIndex, x, y;
+        FoodType& getCurrentFood() {return foodList[currentFoodIndex];}
+    public:
+        FoodManager(int w, int h) {
+            width = w;
+            height = h;
+        }
+        void addFood(string v, int s) {
+            FoodType x(v,s);
+            foodList.push_back(x);
+        }
+        void shuffle() {
+            x = rand()%width;
+            y = rand()%height;
+            currentFoodIndex = rand()%foodList.size();
+            //cout<<currentFoodIndex<<endl;
+        }
+        const string& getVisual() {return getCurrentFood().getVisual();}
+        const int& getScore() {return getCurrentFood().getScore();}
+        const int& getX() {return x;}
+        const int& getY() {return y;}
+};
+
+void Setup(unique_ptr<FoodManager>& fm) {
     gameOver = false;
     isQuitting = false;
     headX = width/2; //Initial position, start in the middle
@@ -25,9 +63,10 @@ void Setup() {
     fruitY = rand() % height;
     nTail = 0;
     score = 0;
+    fm -> shuffle();
 }
 
-void Draw() {
+void Draw(unique_ptr<FoodManager>& fm) {
 
     system("CLS"); //Clear screen
 
@@ -51,8 +90,8 @@ void Draw() {
                 } 
                 
                 //Fruit
-                else if (i==fruitY && j==fruitX) {
-                    cout<<"F";
+                else if (i==fm->getY() && j==fm->getX()) {
+                    cout<<fm->getVisual();
                 } 
                 
                 //Tail
@@ -82,9 +121,10 @@ void Draw() {
 
     cout<<"Score: "<< score <<endl;
     cout<<"Restart (r)    Quit (x)"<<endl;
+    //cout<<pfood.getX()<<endl;
 }
 
-void Input() {
+void Input(unique_ptr<FoodManager>& fm) {
     if (_kbhit()) {
         switch(_getch()){
             case 'w':
@@ -103,7 +143,7 @@ void Input() {
                 isQuitting = true;
                 break;
             case 'r':
-                Setup();
+                Setup(fm);
                 dir = STOP;
                 break;
             default:
@@ -113,7 +153,7 @@ void Input() {
     }
 }
 
-void Logic() {
+void Logic(unique_ptr<FoodManager>& fm) {
 
     int prevX = tailX[0];
     int prevY = tailY[0];
@@ -157,20 +197,23 @@ void Logic() {
         }
     }
 
-    if (headX==fruitX && headY==fruitY) {
-        score += 10;
-        fruitX = rand() % width;
-        fruitY = rand() % height;
+    if (headX==fm->getX() && headY==fm->getY()) {
+        score += fm -> getScore();
+        fm -> shuffle();
         nTail++;
     }
 }
 
 int main() {
-    Setup();
+    unique_ptr<FoodManager> foodmanager = make_unique<FoodManager>(10,10);
+    foodmanager -> addFood("1",1);
+    foodmanager -> addFood("2",2);
+    foodmanager -> addFood("3",3);
+    Setup(foodmanager);
     while(!isQuitting) {
-        Draw();
-        Input();
-        Logic();
+        Draw(foodmanager);
+        Input(foodmanager);
+        Logic(foodmanager);
         Sleep(40);
     }
 }
