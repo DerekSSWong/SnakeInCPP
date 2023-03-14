@@ -21,50 +21,66 @@ int getFromPointer(const unique_ptr<NumberBox>& nbox) {
 };
 
 
-class FoodType {
-    private:
+class Food {
+    protected:
         string visual;
         int score;
     public:
-        FoodType(string v, int s) {visual = v; score = s;}
-        const string& getVisual() {return visual;}
-        const int& getScore() {return score;}
+        const string& getVisual() const {return visual;}
+        int getScore() const {return score;}
+
+};
+
+class SmallFood : public Food {
+    public:
+        SmallFood(const string&& v) {
+            visual = v;
+            score = 1;
+        }
 };
 
 class FoodManager {
     private:
-        vector<FoodType> foodList;
-        int width, height, currentFoodIndex, x, y;
-        FoodType& getCurrentFood() {return foodList[currentFoodIndex];}
+        
     public:
-        FoodManager(int w, int h) {
-            width = w;
-            height = h;
+        vector<unique_ptr<const Food>> foodList;
+        void addFood(unique_ptr<const Food> food) {
+            foodList.push_back(forward<unique_ptr<const Food>>(food));
         }
-        void addFood(string v, int s) {
-            FoodType x(v,s);
-            foodList.push_back(x);
+        unique_ptr<const Food>& getRandFood() {
+            if (foodList.size() <= 0) {
+                cout<<"NONE"<<endl;
+            }
+            return foodList[rand()%foodList.size()];
         }
-        void shuffle() {
-            x = rand()%width;
-            y = rand()%height;
-            currentFoodIndex = rand()%foodList.size();
-            //cout<<currentFoodIndex<<endl;
-        }
-        const string& getVisual() {return getCurrentFood().getVisual();}
-        const int& getScore() {return getCurrentFood().getScore();}
-        const int& getX() {return x;}
-        const int& getY() {return y;}
+
 };
+
+string getVis(unique_ptr<const Food>& foodptr) {
+    return foodptr -> getVisual();
+}
 
 //unique_ptr<FoodManager> foodmanager = make_unique<FoodManager>;
 
+int testNum = 12;
+FoodManager foodManager;
+void editor() {
+    foodManager.addFood(make_unique<const SmallFood>("x"));
+    foodManager.addFood(make_unique<const SmallFood>("y"));
+};
+
+int randIndex;
+void rando() {
+    randIndex = rand()%foodManager.foodList.size();
+}
 int main() {
-    unique_ptr<FoodManager> foodmanager = make_unique<FoodManager>(10,10);
-    foodmanager -> addFood("1",1);
-    foodmanager -> addFood("2",2);
-    foodmanager -> addFood("3",3);
-    foodmanager -> shuffle();
+    editor();
+    rando();
+    cout<<foodManager.foodList[randIndex] -> getVisual()<<endl;
+    rando();
+    cout<<foodManager.foodList[randIndex] -> getVisual()<<endl;
+    rando();
+    cout<<foodManager.foodList[randIndex] -> getVisual()<<endl;
 }
 
 // int main() {

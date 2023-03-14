@@ -11,7 +11,9 @@ bool isQuitting;
 const int height=20;
 const int width=20;
 
-int headX,headY,fruitX,fruitY,score;
+int headX,headY,foodID,foodX,foodY,score;
+
+
 
 int tailX[100], tailY[100], nTail;
 
@@ -19,54 +21,80 @@ enum eDirction {STOP=0, UP, DOWN, LEFT, RIGHT};
 eDirction dir;
 
 class FoodType {
-    private:
+    protected:
         string visual;
         int score;
     public:
-        FoodType(string v, int s) {visual = v; score = s;}
-        const string& getVisual() {return visual;}
-        const int& getScore() {return score;}
+        const string& getVisual() const {return visual;}
+        int getScore() const {return score;}
+};
+
+class SmallFood : public FoodType {
+    public:
+        SmallFood(const string&& v) {
+            visual = v;
+            score = 1;
+        }
+};
+
+class MediumFood : public FoodType {
+    public:
+        MediumFood(const string&& v) {
+            visual = v;
+            score = 2;
+        }
+};
+
+class LargeFood : public FoodType {
+    public:
+        LargeFood(const string&& v) {
+            visual = v;
+            score = 3;
+        }
 };
 
 class FoodManager {
     private:
-        vector<FoodType> foodList;
-        int width, height, currentFoodIndex, x, y;
-        FoodType& getCurrentFood() {return foodList[currentFoodIndex];}
+        vector<unique_ptr<const FoodType>> foodPtrVec;
     public:
-        FoodManager(int w, int h) {
-            width = w;
-            height = h;
+        void addFood(unique_ptr<const FoodType> food) {
+            foodPtrVec.push_back(forward<unique_ptr<const FoodType>>(food));
         }
-        void addFood(string v, int s) {
-            FoodType x(v,s);
-            foodList.push_back(x);
+        unique_ptr<const FoodType>& getFood(int id){
+            return foodPtrVec[id];
         }
-        void shuffle() {
-            x = rand()%width;
-            y = rand()%height;
-            currentFoodIndex = rand()%foodList.size();
-            //cout<<currentFoodIndex<<endl;
+        unique_ptr<const FoodType>& getCurrentFood() {
+            return foodPtrVec[foodID];
         }
-        const string& getVisual() {return getCurrentFood().getVisual();}
-        const int& getScore() {return getCurrentFood().getScore();}
-        const int& getX() {return x;}
-        const int& getY() {return y;}
+        unique_ptr<const FoodType>& getRandFood() {
+            return foodPtrVec[rand()%foodPtrVec.size()];
+        }
+        int getSize() {return foodPtrVec.size();}
 };
+FoodManager foodManager;
 
-void Setup(unique_ptr<FoodManager>& fm) {
+
+void spawnFruit() {
+    foodID = rand()%foodManager.getSize();
+    foodX = rand()%width;
+    foodY = rand()%height;
+}
+
+void Setup() {
     gameOver = false;
     isQuitting = false;
     headX = width/2; //Initial position, start in the middle
     headY = height/2;
-    fruitX = rand() % width;
-    fruitY = rand() % height;
     nTail = 0;
     score = 0;
-    fm -> shuffle();
+
+    foodManager.addFood(make_unique<const SmallFood>(string("*")));
+    foodManager.addFood(make_unique<const MediumFood>(string("0")));
+    foodManager.addFood(make_unique<const LargeFood>(string("&")));
+    spawnFruit();
 }
 
-void Draw(unique_ptr<FoodManager>& fm) {
+void Draw() {
 
     system("CLS"); //Clear screen
 
@@ -90,8 +118,8 @@ void Draw(unique_ptr<FoodManager>& fm) {
                 } 
                 
                 //Fruit
-                else if (i==fm->getY() && j==fm->getX()) {
-                    cout<<fm->getVisual();
+                else if (i==foodY && j==foodX) {
+                    cout<<foodManager.getCurrentFood() -> getVisual();
                 } 
                 
                 //Tail
@@ -124,7 +152,7 @@ void Draw(unique_ptr<FoodManager>& fm) {
     //cout<<pfood.getX()<<endl;
 }
 
-void Input(unique_ptr<FoodManager>& fm) {
+void Input() {
     if (_kbhit()) {
         switch(_getch()){
             case 'w':
@@ -143,7 +171,7 @@ void Input(unique_ptr<FoodManager>& fm) {
                 isQuitting = true;
                 break;
             case 'r':
-                Setup(fm);
+                Setup();
                 dir = STOP;
                 break;
             default:
@@ -153,7 +181,7 @@ void Input(unique_ptr<FoodManager>& fm) {
     }
 }
 
-void Logic(unique_ptr<FoodManager>& fm) {
+void Logic() {
 
     int prevX = tailX[0];
     int prevY = tailY[0];
@@ -197,23 +225,24 @@ void Logic(unique_ptr<FoodManager>& fm) {
         }
     }
 
-    if (headX==fm->getX() && headY==fm->getY()) {
-        score += fm -> getScore();
-        fm -> shuffle();
+    if (headX==foodX && headY==foodY) {
+        score += foodManager.getCurrentFood() -> getScore();
+        spawnFruit();
         nTail++;
     }
 }
 
 int main() {
-    unique_ptr<FoodManager> foodmanager = make_unique<FoodManager>(10,10);
-    foodmanager -> addFood("1",1);
-    foodmanager -> addFood("2",2);
-    foodmanager -> addFood("3",3);
-    Setup(foodmanager);
+
+    Setup();
+    if(foodManager.getSize()==0) {
+        cout<<"Food list empty!"<<endl;
+        isQuitting = true;
+    }
     while(!isQuitting) {
-        Draw(foodmanager);
-        Input(foodmanager);
-        Logic(foodmanager);
+        Draw();
+        Input();
+        Logic();
         Sleep(40);
     }
 }
